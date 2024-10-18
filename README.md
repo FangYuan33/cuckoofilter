@@ -1,31 +1,31 @@
-# Cuckoo Filter
+## Cuckoo Filter
 
 [![GoDoc](https://godoc.org/github.com/seiflotfy/cuckoofilter?status.svg)](https://godoc.org/github.com/seiflotfy/cuckoofilter) [![CodeHunt.io](https://img.shields.io/badge/vote-codehunt.io-02AFD1.svg)](http://codehunt.io/sub/cuckoo-filter/?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-Cuckoo filter is a Bloom filter replacement for approximated set-membership queries. While Bloom filters are well-known space-efficient data structures to serve queries like "if item x is in a set?", they do not support deletion. Their variances to enable deletion (like counting Bloom filters) usually require much more space.
+布谷鸟过滤器是用于近似集合成员查询的布隆过滤器的替代品。虽然布隆过滤器是众所周知的空间高效的数据结构，用于处理诸如“某元素 x 是否在集合中？”之类的查询，但它们不支持删除操作。为了支持删除操作的变种（如计数布隆过滤器）通常需要更多的空间。
 
-Cuckoo ﬁlters provide the ﬂexibility to add and remove items dynamically. A cuckoo filter is based on cuckoo hashing (and therefore named as cuckoo filter). It is essentially a cuckoo hash table storing each key's fingerprint. Cuckoo hash tables can be highly compact, thus a cuckoo filter could use less space than conventional Bloom ﬁlters, for applications that require low false positive rates (< 3%).
+布谷鸟过滤器提供了动态添加和删除项目的灵活性。布谷鸟过滤器基于布谷鸟哈希（因此得名布谷鸟过滤器）。它本质上是一个存储每个键指纹的布谷鸟哈希表。布谷鸟哈希表可以非常紧凑，因此对于需要低误报率（< 3%）的应用，布谷鸟过滤器可能比传统的布隆过滤器占用更少的空间。
 
-For details about the algorithm and citations please use this article for now
+有关算法和引用的详细信息，请暂时使用这篇文章。
 
 ["Cuckoo Filter: Better Than Bloom" by Bin Fan, Dave Andersen and Michael Kaminsky](https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf)
 
-## Implementation details
+### 实现细节
 
-The paper cited above leaves several parameters to choose. In this implementation
+上面引用的论文中留给了若干参数供选择。在这个实现中：
 
-1. Every element has 2 possible bucket indices
-2. Buckets have a static size of 4 fingerprints
-3. Fingerprints have a static size of 8 bits
+1. 每个元素有 2 个可能的桶索引
+2. 每个桶的静态大小为 4 个指纹
+3. 指纹的静态大小为 8 位
 
-1 and 2 are suggested to be the optimum by the authors. The choice of 3 comes down to the desired false positive rate. Given a target false positive rate of `r` and a bucket size `b`, they suggest choosing the fingerprint size `f` using
+1 和 2 被作者建议为最佳选择。3 的选择取决于所需的假阳率。给定目标误报率 `r` 和桶大小 `b`，他们建议选择指纹大小 `f` 使用以下公式：
 
-    f >= log2(2b/r) bits
+    f >= log2(2b/r) 位
 
-With the 8 bit fingerprint size in this repository, you can expect `r ~= 0.03`.
-[Other implementations](https://github.com/panmari/cuckoofilter) use 16 bit, which correspond to a false positive rate of `r ~= 0.0001`.
+在这个代码库中使用 8 位指纹大小时，你可以预期 `r ~= 0.03`。[其他实现](https://github.com/panmari/cuckoofilter) 使用 16 位指纹大小，对应的误报率为 `r ~= 0.0001`。
 
-## Example usage:
+### Example
+
 ```go
 package main
 
@@ -57,6 +57,3 @@ func main() {
   cf.Reset()    // reset
 }
 ```
-
-## Documentation:
-["Cuckoo Filter on GoDoc"](http://godoc.org/github.com/seiflotfy/cuckoofilter)

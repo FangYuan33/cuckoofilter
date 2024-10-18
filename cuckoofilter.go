@@ -8,16 +8,17 @@ import (
 
 const maxCuckooCount = 500
 
-// Filter is a probabilistic counter
 type Filter struct {
-	buckets   []bucket
-	count     uint
+	// 用于存储指纹
+	buckets []bucket
+	// 当前过滤器中存储的元素数量
+	count uint
+	// 用于计算桶索引的幂
 	bucketPow uint
 }
 
-// NewFilter returns a new cuckoofilter with a given capacity.
-// A capacity of 1000000 is a normal default, which allocates
-// about ~1MB on 64-bit machines.
+// NewFilter 创建指定容量的过滤器
+// 1,000,000 是常用的默认值大小，在 64bit 计算机上占用 1MB 左右内存
 func NewFilter(capacity uint) *Filter {
 	capacity = getNextPow2(uint64(capacity)) / bucketSize
 	if capacity == 0 {
@@ -31,17 +32,19 @@ func NewFilter(capacity uint) *Filter {
 	}
 }
 
-// Lookup returns true if data is in the counter
+// Lookup 检查数据是否在过滤器中
 func (cf *Filter) Lookup(data []byte) bool {
+	// 检查第一个桶
 	i1, fp := getIndexAndFingerprint(data, cf.bucketPow)
 	if cf.buckets[i1].getFingerprintIndex(fp) > -1 {
 		return true
 	}
+	// 检查备用桶
 	i2 := getAltIndex(fp, i1, cf.bucketPow)
 	return cf.buckets[i2].getFingerprintIndex(fp) > -1
 }
 
-// Reset ...
+// Reset 重置
 func (cf *Filter) Reset() {
 	for i := range cf.buckets {
 		cf.buckets[i].reset()
@@ -49,6 +52,7 @@ func (cf *Filter) Reset() {
 	cf.count = 0
 }
 
+// 随机返回两个索引中的一个
 func randi(i1, i2 uint) uint {
 	if rand.Intn(2) == 0 {
 		return i1
@@ -56,25 +60,20 @@ func randi(i1, i2 uint) uint {
 	return i2
 }
 
-// Insert inserts data into the counter and returns true upon success
+// Insert 插入数据
 func (cf *Filter) Insert(data []byte) bool {
+	// 尝试插入第一个桶
 	i1, fp := getIndexAndFingerprint(data, cf.bucketPow)
 	if cf.insert(fp, i1) {
 		return true
 	}
+	// 插入失败尝试插入备用桶
 	i2 := getAltIndex(fp, i1, cf.bucketPow)
 	if cf.insert(fp, i2) {
 		return true
 	}
+	// 仍然失败则
 	return cf.reinsert(fp, randi(i1, i2))
-}
-
-// InsertUnique inserts data into the counter if not exists and returns true upon success
-func (cf *Filter) InsertUnique(data []byte) bool {
-	if cf.Lookup(data) {
-		return false
-	}
-	return cf.Insert(data)
 }
 
 func (cf *Filter) insert(fp fingerprint, i uint) bool {
@@ -85,7 +84,9 @@ func (cf *Filter) insert(fp fingerprint, i uint) bool {
 	return false
 }
 
+// 重新插入
 func (cf *Filter) reinsert(fp fingerprint, i uint) bool {
+	// 在最大尝试次数内
 	for k := 0; k < maxCuckooCount; k++ {
 		j := rand.Intn(bucketSize)
 		oldfp := fp
@@ -101,16 +102,26 @@ func (cf *Filter) reinsert(fp fingerprint, i uint) bool {
 	return false
 }
 
-// Delete data from counter if exists and return if deleted or not
+// InsertUnique 插入不存在的元素
+func (cf *Filter) InsertUnique(data []byte) bool {
+	if cf.Lookup(data) {
+		return false
+	}
+	return cf.Insert(data)
+}
+
+// Delete 删除过滤器中的指纹
 func (cf *Filter) Delete(data []byte) bool {
 	i1, fp := getIndexAndFingerprint(data, cf.bucketPow)
 	if cf.delete(fp, i1) {
 		return true
 	}
+	// 删除失败，则尝试从备用桶删除
 	i2 := getAltIndex(fp, i1, cf.bucketPow)
 	return cf.delete(fp, i2)
 }
 
+// 删除指定桶的指纹
 func (cf *Filter) delete(fp fingerprint, i uint) bool {
 	if cf.buckets[i].delete(fp) {
 		if cf.count > 0 {
@@ -121,12 +132,12 @@ func (cf *Filter) delete(fp fingerprint, i uint) bool {
 	return false
 }
 
-// Count returns the number of items in the counter
+// Count 过滤器中元素数量
 func (cf *Filter) Count() uint {
 	return cf.count
 }
 
-// Encode returns a byte slice representing a Cuckoofilter
+// Encode 编码过滤器
 func (cf *Filter) Encode() []byte {
 	bytes := make([]byte, len(cf.buckets)*bucketSize)
 	for i, b := range cf.buckets {
@@ -138,7 +149,7 @@ func (cf *Filter) Encode() []byte {
 	return bytes
 }
 
-// Decode returns a Cuckoofilter from a byte slice
+// Decode 将过滤器解码
 func Decode(bytes []byte) (*Filter, error) {
 	var count uint
 	if len(bytes)%bucketSize != 0 {

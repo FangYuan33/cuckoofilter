@@ -5,8 +5,10 @@ import (
 )
 
 var (
+	// 指纹哈希值
 	altHash = [256]uint{}
-	masks   = [65]uint{}
+	// 掩码值
+	masks = [65]uint{}
 )
 
 func init() {
@@ -18,27 +20,29 @@ func init() {
 	}
 }
 
+// 获取备用桶索引
 func getAltIndex(fp fingerprint, i uint, bucketPow uint) uint {
 	mask := masks[bucketPow]
 	hash := altHash[fp] & mask
 	return (i & mask) ^ hash
 }
 
-func getFingerprint(hash uint64) byte {
-	// Use least significant bits for fingerprint.
-	fp := byte(hash%255 + 1)
-	return fp
-}
-
 // getIndicesAndFingerprint returns the 2 bucket indices and fingerprint to be used
 func getIndexAndFingerprint(data []byte, bucketPow uint) (uint, fingerprint) {
 	hash := defaultHasher.Hash64(data)
 	fp := getFingerprint(hash)
-	// Use most significant bits for deriving index.
+	// 使用哈希值的高位部分和掩码计算第一个桶索引
 	i1 := uint(hash>>32) & masks[bucketPow]
 	return i1, fingerprint(fp)
 }
 
+// 使用哈希值的低位部分计算指纹，使得指纹在 1 - 255 之间
+func getFingerprint(hash uint64) byte {
+	fp := byte(hash%255 + 1)
+	return fp
+}
+
+// 计算出大于或等于 n 的下一个 2 的幂
 func getNextPow2(n uint64) uint {
 	n--
 	n |= n >> 1

@@ -72,7 +72,7 @@ func (cf *Filter) Insert(data []byte) bool {
 	if cf.insert(fp, i2) {
 		return true
 	}
-	// 仍然失败则
+	// 仍然失败则尝试重新插入
 	return cf.reinsert(fp, randi(i1, i2))
 }
 
@@ -88,12 +88,13 @@ func (cf *Filter) insert(fp fingerprint, i uint) bool {
 func (cf *Filter) reinsert(fp fingerprint, i uint) bool {
 	// 在最大尝试次数内
 	for k := 0; k < maxCuckooCount; k++ {
+		// 随机将桶中现有指纹踢出去，并将该指纹放在该位置上
 		j := rand.Intn(bucketSize)
 		oldfp := fp
 		fp = cf.buckets[i][j]
 		cf.buckets[i][j] = oldfp
 
-		// look in the alternate location for that random element
+		// 将该被踢出去的元素在备用桶中寻找位置
 		i = getAltIndex(fp, i, cf.bucketPow)
 		if cf.insert(fp, i) {
 			return true

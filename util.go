@@ -27,7 +27,7 @@ func getAltIndex(fp fingerprint, i uint, bucketPow uint) uint {
 	return (i & mask) ^ hash
 }
 
-// getIndicesAndFingerprint returns the 2 bucket indices and fingerprint to be used
+// getIndicesAndFingerprint 获取该元素桶的索引值，并且计算出该元素的指纹
 func getIndexAndFingerprint(data []byte, bucketPow uint) (uint, fingerprint) {
 	hash := defaultHasher.Hash64(data)
 	fp := getFingerprint(hash)
